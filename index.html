@@ -187,15 +187,13 @@
             }
         };
 
-        // Função para resetar o formulário
         const resetForm = () => {
             userIdInput.value = '';
             nameInput.value = '';
             emailInput.value = '';
-            cancelEditBtn.style.display = 'none'; // Esconde o botão de cancelar
+            cancelEditBtn.style.display = 'none';
         };
 
-        // Manipulador do envio do formulário (POST e PUT)
         userForm.addEventListener('submit', async (event) => {
             event.preventDefault();
 
