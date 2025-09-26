@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Usuários</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --light-gray: #f8f9fa;
+            --dark-gray: #343a40;
+            --border-radius: 8px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--light-gray);
+            color: var(--dark-gray);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            padding: 25px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h1, h2 {
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        input {
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        button.primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        button.cancel {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        #userList {
+            list-style: none;
+            padding: 0;
+        }
+
+        #userList li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: var(--border-radius);
+            margin-bottom: 10px;
+        }
+        
+        #userList li:nth-child(odd) {
+            background-color: #fdfdfd;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-info span {
+            font-size: 14px;
+            color: #555;
+        }
+
+        .actions button {
+            margin-left: 10px;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        .actions .edit-btn {
+            background-color: var(--warning-color);
+            color: var(--dark-gray);
+        }
+
+        .actions .delete-btn {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        
+        #cancel-edit-btn {
+            display: none; /* Escondido por padrão */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Gerenciador de Usuários</h1>
+
+        <form id="userForm">
+            <h2>Adicionar / Editar Usuário</h2>
+            <input type="hidden" id="userId">
+            <input type="text" id="nameInput" placeholder="Nome do usuário" required>
+            <input type="email" id="emailInput" placeholder="E-mail do usuário" required>
+            <button type="submit" class="primary">Salvar</button>
+            <button type="button" class="cancel" id="cancel-edit-btn">Cancelar Edição</button>
+        </form>
+
+        <div>
+            <h2>Lista de Usuários</h2>
+            <ul id="userList">
+                </ul>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+
+        // Referências aos elementos do DOM
+        const userForm = document.getElementById('userForm');
+        const userIdInput = document.getElementById('userId');
+        const nameInput = document.getElementById('nameInput');
+        const emailInput = document.getElementById('emailInput');
+        const userList = document.getElementById('userList');
+        const cancelEditBtn = document.getElementById('cancel-edit-btn');
+
+
+        // Função para buscar e exibir todos os usuários (GET)
+        const fetchUsers = async () => {
+            try {
+                const response = await fetch(API_URL);
+                const users = await response.json();
+
+                userList.innerHTML = ''; // Limpa a lista antes de adicionar os novos itens
+                users.forEach(user => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <div class="user-info">
+                            <strong>${user.name}</strong>
+                            <span>${user.email}</span>
+                        </div>
+                        <div class="actions">
+                            <button class="edit-btn" data-id="${user._id}" data-name="${user.name}" data-email="${user.email}">Editar</button>
+                            <button class="delete-btn" data-id="${user._id}">Deletar</button>
+                        </div>
+                    `;
+                    userList.appendChild(li);
+                });
+            } catch (error) {
+                console.error('Erro ao buscar usuários:', error);
+            }
+        };
+
+        // Função para resetar o formulário
+        const resetForm = () => {
+            userIdInput.value = '';
+            nameInput.value = '';
+            emailInput.value = '';
+            cancelEditBtn.style.display = 'none'; // Esconde o botão de cancelar
+        };
+
+        // Manipulador do envio do formulário (POST e PUT)
+        userForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const id = userIdInput.value;
+            const name = nameInput.value;
+            const email = emailInput.value;
+
+            const userData = { name, email };
+            
+            let url = API_URL;
+            let method = 'POST';
+
+            // Se existe um ID, é uma atualização (PUT), senão é uma criação (POST)
+            if (id) {
+                url = `${API_URL}/${id}`;
+                method = 'PUT';
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(userData),
+                });
+                
+                if (!response.ok) {
+                   throw new Error('Falha ao salvar usuário');
+                }
+
+                resetForm();
+                await fetchUsers(); // Atualiza a lista após a operação
+
+            } catch (error) {
+                console.error('Erro ao salvar usuário:', error);
+                alert('Não foi possível salvar o usuário.');
+            }
+        });
+
+        // Manipulador de cliques na lista de usuários (para Editar e Deletar)
+        userList.addEventListener('click', async (event) => {
+            const target = event.target;
+            const id = target.dataset.id;
+
+            // Ação de Deletar (DELETE)
+            if (target.classList.contains('delete-btn')) {
+                if (confirm('Tem certeza que deseja deletar este usuário?')) {
+                    try {
+                        await fetch(`${API_URL}/${id}`, {
+                            method: 'DELETE',
+                        });
+                        await fetchUsers(); // Atualiza a lista
+                    } catch (error) {
+                        console.error('Erro ao deletar usuário:', error);
+                    }
+                }
+            }
+            
+            // Ação de Editar (preenche o formulário para PUT)
+            if (target.classList.contains('edit-btn')) {
+                userIdInput.value = id;
+                nameInput.value = target.dataset.name;
+                emailInput.value = target.dataset.email;
+                cancelEditBtn.style.display = 'block'; // Mostra o botão
+                window.scrollTo(0, 0); // Rola para o topo da página
+            }
+        });
+        
+        // Ação de cancelar edição
+        cancelEditBtn.addEventListener('click', () => {
+            resetForm();
+        });
+
+        // Carrega os usuários quando a página é aberta
+        document.addEventListener('DOMContentLoaded', fetchUsers);
+    </script>
+</body>
+</html>

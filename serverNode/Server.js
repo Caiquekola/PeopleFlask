@@ -1,13 +1,15 @@
 import express from 'express';
 import Usuario from "./UsuarioSchema.js";
 import connectDB from './MongoDB.js'
-
+import cors from 'cors'
 
 const server = express();
 const PORT = 3000
 connectDB();
 
-server.use(express.json()) //o middleWare para tratar as informações recebidas em json.
+//middlewares
+server.use(cors());
+server.use(express.json()) 
 
 server.get("/", async (req, res) => {
     try {
@@ -35,7 +37,7 @@ server.put("/:id", async (req, res) => {
             req.body,
             {new:true}
         );
-        return res.status(201).json(usuarioAtualizado); 
+        return res.status(200).json(usuarioAtualizado); 
     } catch (error) {
         return res.status(400).json({ error: error.message }); 
     }
@@ -47,7 +49,7 @@ server.delete("/:id", async (req, res) => {
         const usuarioDeletado = await Usuario.findByIdAndDelete(
             req.params.id,
         );
-        return res.status(201).json(usuarioDeletado); 
+        return res.status(200).json({message:"Usuário deletado com sucesso!"}); 
     } catch (error) {
         return res.status(400).json({ error: error.message }); 
     }
